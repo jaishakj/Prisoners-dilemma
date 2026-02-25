@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "outDir": "../resources/static/js",
+    "rootDir": ".",
+    "removeComments": true,
+    "sourceMap": false,
+    "lib": ["ES2020", "DOM"]
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules"]
+}

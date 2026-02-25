@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PRISONER'S DILEMMA — TOURNAMENT</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="notif" id="notif" role="status" aria-live="polite"></div>
+
+<!-- ═══════════════════════════ SCREEN 1: INTRO ═══════════════════════════ -->
+<section class="screen" id="screen-intro" aria-label="Intro">
+  <div class="tag">GAME THEORY EXPERIMENT</div>
+  <h1 class="logo">PRISONER'S<br>DILEMMA</h1>
+  <p class="logo-sub">TOURNAMENT EDITION · AXELROD 1980</p>
+
+  <button class="btn" id="btn-intro-start">START →</button>
+
+  <p class="intro-caption">
+    CAN YOU BEAT THE CHAMPIONS OF AXELROD'S FAMOUS TOURNAMENT?
+  </p>
+</section>
+
+<!-- ═══════════════════════════ SCREEN 2: RULES ════════════════════════════ -->
+<section class="screen" id="screen-rules" aria-label="Rules">
+  <div class="rules-container">
+    <div class="tag">BRIEFING</div>
+    <h2 class="logo" style="font-size:clamp(36px,6vw,64px); text-align:left;">THE RULES</h2>
+
+    <div class="rules-box">
+      <ol class="rule-list">
+        <li>
+          <span class="rule-num">01</span>
+          <span class="rule-text">Each round you and your opponent simultaneously choose to
+            <strong>Cooperate</strong> or <strong>Defect</strong>. Neither player knows the other's choice beforehand.</span>
+        </li>
+        <li>
+          <span class="rule-num">02</span>
+          <span class="rule-text">Your payoff depends on <em>both</em> choices. See the matrix below.</span>
+        </li>
+        <li>
+          <span class="rule-num">03</span>
+          <span class="rule-text">Play continues for the selected number of rounds.
+            Highest cumulative score wins.</span>
+        </li>
+        <li>
+          <span class="rule-num">04</span>
+          <span class="rule-text">Your opponent is a real algorithm from Robert Axelrod's 1980 computer tournament
+            at the University of Michigan.</span>
+        </li>
+      </ol>
+
+      <div class="matrix-title">// PAYOFF MATRIX</div>
+      <table class="payoff-matrix" aria-label="Payoff matrix">
+        <thead>
+          <tr>
+            <th></th>
+            <th>OPPONENT: COOPERATE</th>
+            <th>OPPONENT: DEFECT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>YOU: COOPERATE</th>
+            <td class="cc">
+              <span class="score-hi">+3</span><span class="score-label-s">YOU</span>
+              <span class="score-hi">+3</span><span class="score-label-s">THEM</span>
+            </td>
+            <td class="cd">
+              <span class="score-lo">+0</span><span class="score-label-s">YOU</span>
+              <span class="score-mid">+5</span><span class="score-label-s">THEM</span>
+            </td>
+          </tr>
+          <tr>
+            <th>YOU: DEFECT</th>
+            <td class="dc">
+              <span class="score-mid">+5</span><span class="score-label-s">YOU</span>
+              <span class="score-lo">+0</span><span class="score-label-s">THEM</span>
+            </td>
+            <td class="dd">
+              <span class="score-0">+1</span><span class="score-label-s">YOU</span>
+              <span class="score-0">+1</span><span class="score-label-s">THEM</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="tip-box">
+        <div class="tip-label">TIP FROM AXELROD'S RESEARCH</div>
+        <p>Rational self-interest says defect every round. But the winning strategy across the tournament was
+          <strong>Tit for Tat</strong> — cooperate first, then mirror whatever the opponent did last round.</p>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="btn-rules-back">← BACK</button>
+      <button class="btn" id="btn-rules-next">NEXT: CHOOSE OPPONENT →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SCREEN 3: SELECT ═══════════════════════════ -->
+<section class="screen" id="screen-select" aria-label="Select opponent">
+  <div class="algo-selector-header">
+    <div class="tag">OPPONENT SELECTION</div>
+    <h2 class="logo" style="font-size:clamp(36px,6vw,64px);">CHOOSE YOUR RIVAL</h2>
+    <div class="chosen-display" id="chosen-display">SELECT AN ALGORITHM BELOW</div>
+  </div>
+
+  <button class="random-toggle" id="random-toggle" aria-pressed="false">
+    <div class="toggle-box" id="random-box"></div>
+    <div>
+      <div class="random-title">RANDOM OPPONENT MODE</div>
+      <div class="random-desc">Face a different algorithm — you won't know who until it's over.</div>
+    </div>
+  </button>
+
+  <div class="algo-grid" id="algo-grid" role="group" aria-label="Algorithm selection">
+    <!-- Populated by TypeScript -->
+    <div class="algo-loading">CONNECTING TO SERVER...</div>
+  </div>
+
+  <div class="rounds-section">
+    <div class="rounds-label">// NUMBER OF ROUNDS</div>
+    <div class="rounds-selector">
+      <button class="rounds-btn selected" data-rounds="10">10</button>
+      <button class="rounds-btn" data-rounds="20">20</button>
+      <button class="rounds-btn" data-rounds="50">50</button>
+      <button class="rounds-btn" data-rounds="100">100</button>
+      <button class="rounds-btn" data-rounds="200">200</button>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-secondary" id="btn-select-back">← BACK</button>
+    <button class="btn" id="btn-start-game">BEGIN MATCH →</button>
+  </div>
+</section>
+
+<!-- ════════════════════════════ SCREEN 4: GAME ════════════════════════════ -->
+<section class="screen" id="screen-game" aria-label="Game">
+  <div class="game-wrapper">
+    <header class="game-header">
+      <div>
+        <div class="round-info" id="round-label">ROUND 1 / 10</div>
+        <div class="round-progress-track">
+          <div class="round-progress-fill" id="round-progress"></div>
+        </div>
+      </div>
+      <div class="score-display">
+        <div class="score-block">
+          <div class="score-label">YOU</div>
+          <div class="score-val" id="p1-score">0</div>
+        </div>
+        <div class="vs-small">VS</div>
+        <div class="score-block">
+          <div class="score-label" id="p2-label">OPPONENT</div>
+          <div class="score-val score-val--p2" id="p2-score">0</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="arena">
+      <!-- Player side -->
+      <div class="player-zone">
+        <div class="player-title">YOU — HUMAN</div>
+        <svg class="pixel-person" viewBox="0 0 64 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="20" y="4"  width="24" height="24" fill="var(--accent)"  opacity="0.9"/>
+          <rect x="16" y="28" width="32" height="28" fill="var(--text)" opacity="0.85"/>
+          <rect x="4"  y="28" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+          <rect x="48" y="28" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+          <rect x="16" y="56" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+          <rect x="36" y="56" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+        </svg>
+        <div class="choice-btns">
+          <button class="choice-btn cooperate" id="btn-cooperate">▲ COOPERATE</button>
+          <button class="choice-btn defect"    id="btn-defect">▼ DEFECT</button>
+        </div>
+        <div class="player-status" id="player-status">CHOOSE YOUR MOVE</div>
+      </div>
+
+      <div class="vs-badge" aria-hidden="true">VS</div>
+
+      <!-- Opponent side -->
+      <div class="player-zone">
+        <div class="player-title">OPPONENT</div>
+        <svg class="pixel-person" viewBox="0 0 64 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="20" y="4"  width="24" height="24" fill="var(--accent2)" opacity="0.9"/>
+          <rect x="16" y="28" width="32" height="28" fill="var(--text)"  opacity="0.85"/>
+          <rect x="4"  y="28" width="12" height="20" fill="var(--text)"  opacity="0.7"/>
+          <rect x="48" y="28" width="12" height="20" fill="var(--text)"  opacity="0.7"/>
+          <rect x="16" y="56" width="12" height="20" fill="var(--text)"  opacity="0.7"/>
+          <rect x="36" y="56" width="12" height="20" fill="var(--text)"  opacity="0.7"/>
+        </svg>
+        <div class="opponent-label" id="opponent-name-display">—</div>
+        <div class="thinking-dots" id="thinking" style="display:none" aria-live="polite">···</div>
+        <div class="opponent-reveal" id="opponent-reveal" style="display:none" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="result-row" id="result-display">
+      <span class="result-placeholder">AWAITING MOVES...</span>
+    </div>
+
+    <div class="section-divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">ROUND HISTORY</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="history-strip" id="history-strip" aria-label="Round history">
+      <span class="history-label">HISTORY</span>
+      <span class="history-legend">
+        <span style="color:var(--green)">■</span> CC &nbsp;
+        <span style="color:var(--accent)">■</span> DC &nbsp;
+        <span style="color:var(--accent3)">■</span> CD &nbsp;
+        <span style="color:var(--muted)">■</span> DD
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ SCREEN 5: RESULTS ═══════════════════════════ -->
+<section class="screen" id="screen-results" aria-label="Results">
+  <div class="results-container">
+    <div class="result-header">
+      <div class="tag" id="result-tag">MATCH COMPLETE</div>
+      <div class="winner-text" id="winner-text">—</div>
+      <div class="result-subtitle" id="result-subtitle"></div>
+    </div>
+
+    <div class="final-scores">
+      <div class="final-score-block final-score-block--p1">
+        <div class="final-label">YOUR SCORE</div>
+        <div class="big-score big-score--p1" id="final-p1">0</div>
+      </div>
+      <div class="final-score-block final-score-block--p2">
+        <div class="final-label" id="final-p2-label">OPPONENT</div>
+        <div class="big-score big-score--p2" id="final-p2">0</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-mutual-c">0</div>
+        <div class="stat-label">MUTUAL COOP</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-mutual-d">0</div>
+        <div class="stat-label">MUTUAL DEFECT</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-betrayed">0</div>
+        <div class="stat-label">BETRAYALS</div>
+      </div>
+    </div>
+
+    <div class="section-divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">AXELROD TOURNAMENT STANDINGS</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="leaderboard" id="leaderboard" aria-label="Leaderboard"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="btn-change-opponent">← CHANGE OPPONENT</button>
+      <button class="btn" id="btn-rematch">REMATCH ↺</button>
+      <button class="btn btn-blue" id="btn-main-menu">MAIN MENU</button>
+    </div>
+  </div>
+</section>
+
+<!-- TypeScript compiled output -->
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>
