@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRISONER'S DILEMMA — Tournament</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a3e;
+    --accent: #f0e040;
+    --accent2: #40c0f0;
+    --accent3: #f04060;
+    --green: #40e090;
+    --muted: #5a5a7a;
+    --text: #e8e8f0;
+    --pixel: 'Space Mono', monospace;
+    --display: 'Bebas Neue', sans-serif;
+    --body: 'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* CRT vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%);
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  /* Grid bg */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(240,224,64,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(240,224,64,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen {
+    position: relative;
+    z-index: 1;
+    display: none;
+    min-height: 100vh;
+  }
+  .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+
+  /* ============ HEADER ============ */
+  .logo {
+    font-family: var(--display);
+    font-size: clamp(48px, 8vw, 96px);
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(240,224,64,0.4), 4px 4px 0 rgba(240,224,64,0.15);
+    line-height: 1;
+    text-align: center;
+  }
+
+  .logo-sub {
+    font-family: var(--pixel);
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+    text-transform: uppercase;
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--pixel);
+    font-size: 10px;
+    letter-spacing: 3px;
+    padding: 4px 12px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+
+  /* ============ BUTTONS ============ */
+  .btn {
+    font-family: var(--pixel);
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 14px 32px;
+    border: 2px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: translateX(-100%);
+    transition: transform 0.15s;
+    z-index: -1;
+  }
+  .btn:hover { color: var(--bg); }
+  .btn:hover::before { transform: translateX(0); }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-secondary {
+    border-color: var(--border);
+    color: var(--muted);
+  }
+  .btn-secondary:hover { color: var(--bg); }
+  .btn-secondary::before { background: var(--muted); }
+
+  .btn-danger {
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+  .btn-danger:hover { color: #fff; }
+  .btn-danger::before { background: var(--accent3); }
+
+  .btn-blue {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-blue:hover { color: var(--bg); }
+  .btn-blue::before { background: var(--accent2); }
+
+  /* ============ RULES SCREEN ============ */
+  .rules-container {
+    max-width: 680px;
+    width: 100%;
+  }
+
+  .rules-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 40px;
+    margin: 32px 0;
+    position: relative;
+  }
+
+  .rules-box::before {
+    content: 'GAME RULES';
+    position: absolute;
+    top: -10px;
+    left: 24px;
+    font-family: var(--pixel);
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    background: var(--card);
+    padding: 0 8px;
+  }
+
+  .matrix-title {
+    font-family: var(--pixel);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin: 24px 0 12px;
+  }
+
+  .payoff-matrix {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr;
+    grid-template-rows: 40px 1fr 1fr;
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    font-family: var(--pixel);
+    font-size: 11px;
+  }
+
+  .matrix-cell {
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 8px;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  .matrix-header {
+    background: var(--bg);
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+
+  .matrix-cell.cc { color: var(--green); }
+  .matrix-cell.cd { }
+  .matrix-cell.dc { color: var(--accent3); }
+  .matrix-cell.dd { color: var(--muted); }
+
+  .score-hi { color: var(--green); font-size: 16px; }
+  .score-lo { color: var(--accent3); font-size: 16px; }
+  .score-mid { color: var(--accent); font-size: 16px; }
+  .score-0 { color: var(--muted); font-size: 16px; }
+
+  .rule-item {
+    display: flex;
+    gap: 16px;
+    margin: 12px 0;
+    align-items: flex-start;
+  }
+
+  .rule-num {
+    font-family: var(--pixel);
+    font-size: 11px;
+    color: var(--accent);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .rule-text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+    opacity: 0.85;
+  }
+
+  /* ============ ALGORITHM SELECTOR ============ */
+  .algo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    max-width: 860px;
+    width: 100%;
+    margin: 24px 0;
+  }
+
+  .algo-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .algo-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.15s;
+  }
+
+  .algo-card:hover {
+    border-color: var(--accent);
+    background: rgba(240,224,64,0.04);
+  }
+  .algo-card:hover::after { transform: scaleX(1); }
+
+  .algo-card.selected {
+    border-color: var(--accent);
+    background: rgba(240,224,64,0.08);
+    box-shadow: 0 0 20px rgba(240,224,64,0.1);
+  }
+  .algo-card.selected::after { transform: scaleX(1); }
+
+  .algo-name {
+    font-family: var(--pixel);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .algo-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .algo-tag {
+    display: inline-block;
+    font-family: var(--pixel);
+    font-size: 9px;
+    padding: 2px 6px;
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+  .algo-tag.nice { background: rgba(64,224,144,0.1); color: var(--green); border: 1px solid rgba(64,224,144,0.3); }
+  .algo-tag.nasty { background: rgba(240,64,96,0.1); color: var(--accent3); border: 1px solid rgba(240,64,96,0.3); }
+  .algo-tag.mixed { background: rgba(64,192,240,0.1); color: var(--accent2); border: 1px solid rgba(64,192,240,0.3); }
+
+  .random-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    max-width: 860px;
+    width: 100%;
+  }
+  .random-toggle:hover { border-color: var(--accent2); }
+  .random-toggle.active { border-color: var(--accent2); background: rgba(64,192,240,0.06); }
+
+  .toggle-box {
+    width: 16px; height: 16px;
+    border: 2px solid var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--pixel); font-size: 10px; color: var(--accent2);
+    flex-shrink: 0;
+    transition: border-color 0.15s;
+  }
+  .random-toggle.active .toggle-box { border-color: var(--accent2); }
+
+  /* ============ GAME SCREEN ============ */
+  .game-wrapper {
+    max-width: 900px;
+    width: 100%;
+  }
+
+  .game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .round-info {
+    font-family: var(--pixel);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+  }
+
+  .score-display {
+    display: flex;
+    gap: 40px;
+  }
+
+  .score-block {
+    text-align: center;
+  }
+
+  .score-label {
+    font-family: var(--pixel);
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .score-val {
+    font-family: var(--display);
+    font-size: 48px;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  .score-val.p2 { color: var(--accent2); }
+
+  /* Arena */
+  .arena {
+    display: grid;
+    grid-template-columns: 1fr 160px 1fr;
+    gap: 16px;
+    align-items: center;
+    margin: 24px 0;
+  }
+
+  .player-zone {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    text-align: center;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .player-title {
+    font-family: var(--pixel);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .player-avatar {
+    width: 64px;
+    height: 80px;
+    position: relative;
+  }
+
+  /* Pixel person SVG style */
+  .pixel-person {
+    fill: var(--text);
+  }
+
+  .choice-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .choice-btn {
+    font-family: var(--pixel);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .choice-btn.cooperate {
+    color: var(--green);
+    border-color: rgba(64,224,144,0.3);
+  }
+  .choice-btn.cooperate:hover {
+    background: rgba(64,224,144,0.1);
+    border-color: var(--green);
+  }
+
+  .choice-btn.defect {
+    color: var(--accent3);
+    border-color: rgba(240,64,96,0.3);
+  }
+  .choice-btn.defect:hover {
+    background: rgba(240,64,96,0.1);
+    border-color: var(--accent3);
+  }
+
+  .choice-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .vs-badge {
+    font-family: var(--display);
+    font-size: 32px;
+    color: var(--border);
+    text-align: center;
+  }
+
+  .opponent-label {
+    font-family: var(--pixel);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .thinking-dots {
+    font-family: var(--pixel);
+    color: var(--muted);
+    font-size: 20px;
+    animation: blink 0.6s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  /* Result flash */
+  .result-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin: 8px 0;
+    font-family: var(--pixel);
+    font-size: 12px;
+    min-height: 56px;
+    transition: all 0.3s;
+  }
+
+  .choice-badge {
+    padding: 4px 10px;
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+  .choice-badge.C { background: rgba(64,224,144,0.15); color: var(--green); border: 1px solid rgba(64,224,144,0.4); }
+  .choice-badge.D { background: rgba(240,64,96,0.15); color: var(--accent3); border: 1px solid rgba(240,64,96,0.4); }
+
+  .points-gained {
+    color: var(--accent);
+  }
+
+  /* History strip */
+  .history-strip {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    min-height: 48px;
+    align-items: center;
+  }
+
+  .history-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 0;
+    flex-shrink: 0;
+  }
+  .history-dot.CC { background: var(--green); }
+  .history-dot.CD { background: var(--accent3); }
+  .history-dot.DC { background: var(--accent); }
+  .history-dot.DD { background: var(--muted); }
+
+  .history-label {
+    font-family: var(--pixel);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Progress bar */
+  .round-progress {
+    height: 4px;
+    background: var(--border);
+    margin: 8px 0;
+    position: relative;
+  }
+  .round-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s;
+    box-shadow: 0 0 8px rgba(240,224,64,0.5);
+  }
+
+  /* ============ RESULTS SCREEN ============ */
+  .results-container {
+    max-width: 700px;
+    width: 100%;
+  }
+
+  .result-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .winner-text {
+    font-family: var(--display);
+    font-size: 64px;
+    line-height: 1;
+    margin: 8px 0;
+  }
+
+  .winner-text.win { color: var(--green); text-shadow: 0 0 40px rgba(64,224,144,0.5); }
+  .winner-text.lose { color: var(--accent3); text-shadow: 0 0 40px rgba(240,64,96,0.5); }
+  .winner-text.draw { color: var(--accent); text-shadow: 0 0 40px rgba(240,224,64,0.5); }
+
+  .final-scores {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+
+  .final-score-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    text-align: center;
+  }
+
+  .final-score-block .label {
+    font-family: var(--pixel);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .final-score-block .big-score {
+    font-family: var(--display);
+    font-size: 72px;
+    line-height: 1;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 16px 0;
+  }
+
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: var(--pixel);
+    font-size: 18px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-family: var(--pixel);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .leaderboard {
+    background: var(--card);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin: 16px 0;
+  }
+
+  .leaderboard-title {
+    font-family: var(--pixel);
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    text-transform: uppercase;
+  }
+
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--pixel);
+    font-size: 11px;
+    transition: background 0.1s;
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row:hover { background: rgba(255,255,255,0.02); }
+  .lb-row.highlight { background: rgba(240,224,64,0.06); }
+
+  .lb-rank { color: var(--muted); width: 24px; flex-shrink: 0; }
+  .lb-name { flex: 1; color: var(--text); }
+  .lb-score { color: var(--accent); width: 60px; text-align: right; }
+  .lb-bar-wrap { flex: 2; height: 6px; background: var(--border); }
+  .lb-bar { height: 100%; background: var(--accent); transition: width 0.5s; }
+
+  /* Pixel decorations */
+  .pixel-corner {
+    position: absolute;
+    width: 8px; height: 8px;
+    background: var(--accent);
+  }
+  .pixel-corner.tl { top: 0; left: 0; }
+  .pixel-corner.tr { top: 0; right: 0; }
+  .pixel-corner.bl { bottom: 0; left: 0; }
+  .pixel-corner.br { bottom: 0; right: 0; }
+
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .divider-text {
+    font-family: var(--pixel);
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+
+  .notification {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--card);
+    border: 1px solid var(--accent);
+    padding: 12px 24px;
+    font-family: var(--pixel);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    transition: transform 0.3s;
+    z-index: 1000;
+  }
+  .notification.show { transform: translateX(-50%) translateY(0); }
+
+  .algo-selector-header {
+    text-align: center;
+    max-width: 860px;
+    width: 100%;
+  }
+
+  .rounds-selector {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+
+  .rounds-btn {
+    font-family: var(--pixel);
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .rounds-btn.selected {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(240,224,64,0.05);
+  }
+
+  .chosen-algo-display {
+    font-family: var(--pixel);
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: var(--accent2);
+    text-align: center;
+    margin: 8px 0;
+    min-height: 20px;
+  }
+
+  /* Animate in */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .screen.active > * {
+    animation: fadeUp 0.4s ease both;
+  }
+  .screen.active > *:nth-child(2) { animation-delay: 0.05s; }
+  .screen.active > *:nth-child(3) { animation-delay: 0.1s; }
+  .screen.active > *:nth-child(4) { animation-delay: 0.15s; }
+  .screen.active > *:nth-child(5) { animation-delay: 0.2s; }
+
+  @media (max-width: 640px) {
+    .arena { grid-template-columns: 1fr; }
+    .vs-badge { display: none; }
+    .algo-grid { grid-template-columns: 1fr 1fr; }
+    .final-scores { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="notification" id="notif">—</div>
+
+<!-- =================== SCREEN 1: INTRO =================== -->
+<div class="screen active" id="screen-intro">
+  <div class="tag">GAME THEORY EXPERIMENT</div>
+  <div class="logo">PRISONER'S<br>DILEMMA</div>
+  <div class="logo-sub">TOURNAMENT EDITION · AXELROD 1980</div>
+
+  <div style="margin-top: 32px;">
+    <div class="btn" onclick="goTo('screen-rules')">START →</div>
+  </div>
+  <div style="margin-top: 16px; font-family: var(--pixel); font-size: 10px; letter-spacing: 2px; color: var(--muted); text-align: center; max-width: 400px; line-height: 2;">
+    CAN YOU BEAT THE CHAMPIONS OF AXELROD'S FAMOUS TOURNAMENT?
+  </div>
+</div>
+
+<!-- =================== SCREEN 2: RULES =================== -->
+<div class="screen" id="screen-rules">
+  <div class="rules-container">
+    <div class="tag">BRIEFING</div>
+    <div class="logo" style="font-size: 48px; text-align: left;">THE RULES</div>
+
+    <div class="rules-box" style="position: relative;">
+      <div class="rule-item">
+        <div class="rule-num">01</div>
+        <div class="rule-text">Each round, you and your opponent simultaneously choose to <b>Cooperate</b> or <b>Defect</b>. Neither player knows the other's choice beforehand.</div>
+      </div>
+      <div class="rule-item">
+        <div class="rule-num">02</div>
+        <div class="rule-text">Your payoff depends on <i>both</i> choices. The payoff matrix below shows points earned per round.</div>
+      </div>
+      <div class="rule-item">
+        <div class="rule-num">03</div>
+        <div class="rule-text">Play continues for the selected number of rounds. Highest cumulative score wins.</div>
+      </div>
+      <div class="rule-item">
+        <div class="rule-num">04</div>
+        <div class="rule-text">Your opponent is one of the real algorithms from Robert Axelrod's 1980 computer tournament at the University of Michigan.</div>
+      </div>
+
+      <div class="matrix-title">// PAYOFF MATRIX</div>
+      <div class="payoff-matrix">
+        <div class="matrix-cell matrix-header"></div>
+        <div class="matrix-cell matrix-header">OPPONENT: COOPERATE</div>
+        <div class="matrix-cell matrix-header">OPPONENT: DEFECT</div>
+
+        <div class="matrix-cell matrix-header">YOU: COOPERATE</div>
+        <div class="matrix-cell cc">
+          <div>
+            <div class="score-hi">+3</div>
+            <div style="font-size:10px;color:var(--muted)">YOU</div>
+            <div class="score-hi">+3</div>
+            <div style="font-size:10px;color:var(--muted)">THEM</div>
+          </div>
+        </div>
+        <div class="matrix-cell cd">
+          <div>
+            <div class="score-lo">+0</div>
+            <div style="font-size:10px;color:var(--muted)">YOU</div>
+            <div class="score-mid">+5</div>
+            <div style="font-size:10px;color:var(--muted)">THEM</div>
+          </div>
+        </div>
+
+        <div class="matrix-cell matrix-header">YOU: DEFECT</div>
+        <div class="matrix-cell dc">
+          <div>
+            <div class="score-mid">+5</div>
+            <div style="font-size:10px;color:var(--muted)">YOU</div>
+            <div class="score-lo">+0</div>
+            <div style="font-size:10px;color:var(--muted)">THEM</div>
+          </div>
+        </div>
+        <div class="matrix-cell dd">
+          <div>
+            <div class="score-0">+1</div>
+            <div style="font-size:10px;color:var(--muted)">YOU</div>
+            <div class="score-0">+1</div>
+            <div style="font-size:10px;color:var(--muted)">THEM</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; padding: 12px 16px; border-left: 2px solid var(--accent); background: rgba(240,224,64,0.04);">
+        <div style="font-family: var(--pixel); font-size: 10px; letter-spacing: 2px; color: var(--accent); margin-bottom: 4px;">TIP FROM AXELROD'S RESEARCH</div>
+        <div style="font-size: 13px; color: var(--muted); line-height: 1.6;">Rational self-interest suggests defecting every round. But the winning strategy across the tournament was <b style="color:var(--text)">Tit for Tat</b> — cooperate first, then mirror whatever the opponent did last round.</div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <div class="btn-secondary btn" onclick="goTo('screen-intro')">← BACK</div>
+      <div class="btn" onclick="goTo('screen-select')">NEXT: CHOOSE OPPONENT →</div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== SCREEN 3: SELECT =================== -->
+<div class="screen" id="screen-select">
+  <div class="algo-selector-header">
+    <div class="tag">OPPONENT SELECTION</div>
+    <div class="logo" style="font-size: 48px;">CHOOSE YOUR RIVAL</div>
+    <div class="chosen-algo-display" id="chosen-display">SELECT AN ALGORITHM BELOW</div>
+  </div>
+
+  <div class="random-toggle" id="random-toggle" onclick="toggleRandom()">
+    <div class="toggle-box" id="random-box"></div>
+    <div>
+      <div style="font-family: var(--pixel); font-size: 11px; letter-spacing: 2px; color: var(--accent2); text-transform: uppercase;">Random Opponent Mode</div>
+      <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Face a different algorithm each match — you won't know who until it's over.</div>
+    </div>
+  </div>
+
+  <div class="algo-grid" id="algo-grid">
+    <!-- Populated by JS -->
+  </div>
+
+  <div style="text-align: center; max-width: 860px; width: 100%;">
+    <div style="font-family: var(--pixel); font-size: 10px; letter-spacing: 3px; color: var(--muted); margin-bottom: 12px;">// NUMBER OF ROUNDS</div>
+    <div class="rounds-selector">
+      <div class="rounds-btn selected" onclick="selectRounds(10, this)">10</div>
+      <div class="rounds-btn" onclick="selectRounds(20, this)">20</div>
+      <div class="rounds-btn" onclick="selectRounds(50, this)">50</div>
+      <div class="rounds-btn" onclick="selectRounds(100, this)">100</div>
+      <div class="rounds-btn" onclick="selectRounds(200, this)">200</div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <div class="btn-secondary btn" onclick="goTo('screen-rules')">← BACK</div>
+    <div class="btn" id="start-game-btn" onclick="startGame()">BEGIN MATCH →</div>
+  </div>
+</div>
+
+<!-- =================== SCREEN 4: GAME =================== -->
+<div class="screen" id="screen-game">
+  <div class="game-wrapper">
+    <div class="game-header">
+      <div>
+        <div class="round-info" id="round-label">ROUND 1 / 10</div>
+        <div class="round-progress" style="width: 200px; margin-top: 8px;">
+          <div class="round-progress-fill" id="round-progress" style="width: 0%"></div>
+        </div>
+      </div>
+      <div class="score-display">
+        <div class="score-block">
+          <div class="score-label">YOU</div>
+          <div class="score-val" id="p1-score">0</div>
+        </div>
+        <div style="font-family:var(--pixel); font-size:12px; color:var(--border); align-self:center;">VS</div>
+        <div class="score-block">
+          <div class="score-label" id="p2-label">OPPONENT</div>
+          <div class="score-val p2" id="p2-score">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arena">
+      <!-- Player -->
+      <div class="player-zone">
+        <div class="player-title">YOU — HUMAN</div>
+        <svg class="player-avatar" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="20" y="4" width="24" height="24" fill="var(--accent)" opacity="0.9"/>
+          <rect x="16" y="28" width="32" height="28" fill="var(--text)" opacity="0.85"/>
+          <rect x="4" y="28" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+          <rect x="48" y="28" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+          <rect x="16" y="56" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+          <rect x="36" y="56" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+        </svg>
+        <div class="choice-btns" id="choice-btns">
+          <button class="choice-btn cooperate" onclick="playerChoice('C')">▲ COOPERATE</button>
+          <button class="choice-btn defect" onclick="playerChoice('D')">▼ DEFECT</button>
+        </div>
+        <div style="font-family: var(--pixel); font-size: 10px; color: var(--muted); letter-spacing: 1px;" id="player-status">CHOOSE YOUR MOVE</div>
+      </div>
+
+      <!-- VS -->
+      <div style="text-align:center;">
+        <div class="vs-badge">VS</div>
+      </div>
+
+      <!-- Opponent -->
+      <div class="player-zone">
+        <div class="player-title">OPPONENT</div>
+        <svg class="player-avatar" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="20" y="4" width="24" height="24" fill="var(--accent2)" opacity="0.9"/>
+          <rect x="16" y="28" width="32" height="28" fill="var(--text)" opacity="0.85"/>
+          <rect x="4" y="28" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+          <rect x="48" y="28" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+          <rect x="16" y="56" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+          <rect x="36" y="56" width="12" height="20" fill="var(--text)" opacity="0.7"/>
+        </svg>
+        <div class="opponent-label" id="opponent-name-display">—</div>
+        <div class="thinking-dots" id="thinking">···</div>
+        <div id="opponent-choice-reveal" style="display:none; font-family:var(--pixel); font-size:18px; letter-spacing:2px;"></div>
+      </div>
+    </div>
+
+    <!-- Result display -->
+    <div class="result-row" id="result-display">
+      <span style="color:var(--muted); font-family:var(--pixel); font-size:10px; letter-spacing:3px;">AWAITING MOVES...</span>
+    </div>
+
+    <!-- History -->
+    <div class="section-divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">ROUND HISTORY</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="history-strip" id="history-strip">
+      <span class="history-label">HISTORY</span>
+      <span style="font-family:var(--pixel); font-size:9px; color:var(--muted); letter-spacing:1px;">
+        <span style="color:var(--green)">■</span> CC &nbsp;
+        <span style="color:var(--accent)">■</span> DC &nbsp;
+        <span style="color:var(--accent3)">■</span> CD &nbsp;
+        <span style="color:var(--muted)">■</span> DD
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- =================== SCREEN 5: RESULTS =================== -->
+<div class="screen" id="screen-results">
+  <div class="results-container">
+    <div class="result-header">
+      <div class="tag" id="result-tag">MATCH COMPLETE</div>
+      <div class="winner-text" id="winner-text">—</div>
+      <div style="font-family:var(--pixel); font-size:11px; letter-spacing:3px; color:var(--muted);" id="result-subtitle"></div>
+    </div>
+
+    <div class="final-scores">
+      <div class="final-score-block" style="border-color:rgba(240,224,64,0.4);">
+        <div class="label">YOUR SCORE</div>
+        <div class="big-score" style="color:var(--accent);" id="final-p1">0</div>
+      </div>
+      <div class="final-score-block" style="border-color:rgba(64,192,240,0.4);">
+        <div class="label" id="final-p2-label">OPPONENT</div>
+        <div class="big-score" style="color:var(--accent2);" id="final-p2">0</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-mutual-c">0</div>
+        <div class="stat-label">MUTUAL COOP</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-mutual-d">0</div>
+        <div class="stat-label">MUTUAL DEFECT</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-betrayed">0</div>
+        <div class="stat-label">BETRAYALS</div>
+      </div>
+    </div>
+
+    <div class="section-divider">
+      <div class="divider-line"></div>
+      <div class="divider-text">AXELROD TOURNAMENT STANDINGS</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="leaderboard" id="leaderboard"></div>
+
+    <div class="btn-row">
+      <div class="btn-secondary btn" onclick="goTo('screen-select')">← CHANGE OPPONENT</div>
+      <div class="btn" onclick="rematch()">REMATCH ↺</div>
+      <div class="btn-blue btn" onclick="goTo('screen-intro')">MAIN MENU</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== ALGORITHMS =====================
+const ALGORITHMS = [
+  {
+    id: 'tit_for_tat',
+    name: 'TIT FOR TAT',
+    shortDesc: 'Cooperate first. Mirror opponent\'s last move.',
+    tag: 'nice',
+    tagLabel: 'NICE',
+    historicalScore: 504,
+    historicalRank: 1,
+    fn: (history) => {
+      if (history.length === 0) return 'C';
+      return history[history.length - 1].opponent;
+    }
+  },
+  {
+    id: 'always_cooperate',
+    name: 'ALWAYS COOPERATE',
+    shortDesc: 'Cooperate every single round, unconditionally.',
+    tag: 'nice',
+    tagLabel: 'NAIVE',
+    historicalScore: 600,
+    historicalRank: null,
+    fn: () => 'C'
+  },
+  {
+    id: 'always_defect',
+    name: 'ALWAYS DEFECT',
+    shortDesc: 'Defect every single round, never cooperate.',
+    tag: 'nasty',
+    tagLabel: 'NASTY',
+    historicalScore: 280,
+    historicalRank: null,
+    fn: () => 'D'
+  },
+  {
+    id: 'grudger',
+    name: 'GRUDGER',
+    shortDesc: 'Cooperate until opponent defects once. Then defect forever.',
+    tag: 'mixed',
+    tagLabel: 'VENGEFUL',
+    historicalScore: 473,
+    historicalRank: 7,
+    fn: (history) => {
+      if (history.some(h => h.opponent === 'D')) return 'D';
+      return 'C';
+    }
+  },
+  {
+    id: 'random',
+    name: 'RANDOM',
+    shortDesc: 'Cooperate or defect at 50/50 random each round.',
+    tag: 'mixed',
+    tagLabel: 'CHAOS',
+    historicalScore: 276,
+    historicalRank: null,
+    fn: () => Math.random() < 0.5 ? 'C' : 'D'
+  },
+  {
+    id: 'tit_for_two_tats',
+    name: 'TIT FOR 2 TATS',
+    shortDesc: 'Defect only after opponent defects twice in a row.',
+    tag: 'nice',
+    tagLabel: 'FORGIVING',
+    historicalScore: 481,
+    historicalRank: 5,
+    fn: (history) => {
+      if (history.length < 2) return 'C';
+      const last = history.slice(-2);
+      if (last[0].opponent === 'D' && last[1].opponent === 'D') return 'D';
+      return 'C';
+    }
+  },
+  {
+    id: 'suspicious_tit_for_tat',
+    name: 'SUSPICIOUS TFT',
+    shortDesc: 'Defect first. Then mirror opponent\'s last move.',
+    tag: 'mixed',
+    tagLabel: 'CAUTIOUS',
+    historicalScore: 452,
+    historicalRank: null,
+    fn: (history) => {
+      if (history.length === 0) return 'D';
+      return history[history.length - 1].opponent;
+    }
+  },
+  {
+    id: 'pavlov',
+    name: 'PAVLOV / WIN-STAY',
+    shortDesc: 'Repeat last move if it worked (won 3 or 5pts). Switch otherwise.',
+    tag: 'mixed',
+    tagLabel: 'ADAPTIVE',
+    historicalScore: 491,
+    historicalRank: null,
+    fn: (history) => {
+      if (history.length === 0) return 'C';
+      const last = history[history.length - 1];
+      // Win = got 3 or 5 points
+      const won = last.p1points >= 3;
+      return won ? last.player : (last.player === 'C' ? 'D' : 'C');
+    }
+  },
+  {
+    id: 'joss',
+    name: 'JOSS',
+    shortDesc: 'Like Tit for Tat, but defects 10% of the time when it should cooperate.',
+    tag: 'mixed',
+    tagLabel: 'SNEAKY',
+    historicalScore: 304,
+    historicalRank: 12,
+    fn: (history) => {
+      if (history.length === 0) return 'C';
+      const mirror = history[history.length - 1].opponent;
+      if (mirror === 'C' && Math.random() < 0.1) return 'D';
+      return mirror;
+    }
+  },
+  {
+    id: 'prober',
+    name: 'PROBER',
+    shortDesc: 'Start D,C,C — if opponent never defected, always defect. Else TFT.',
+    tag: 'nasty',
+    tagLabel: 'EXPLOITER',
+    historicalScore: 391,
+    historicalRank: 10,
+    fn: (history) => {
+      if (history.length === 0) return 'D';
+      if (history.length === 1) return 'C';
+      if (history.length === 2) return 'C';
+      // Check if opponent defected in rounds 0-2
+      const probingPhase = history.slice(0, 3);
+      const opponentDefected = probingPhase.some(h => h.opponent === 'D');
+      if (!opponentDefected) return 'D'; // Exploit
+      // Else TFT
+      return history[history.length - 1].opponent;
+    }
+  },
+  {
+    id: 'friedman',
+    name: 'FRIEDMAN',
+    shortDesc: 'Cooperate until ANY defection. Then defect forever (permanent retaliation).',
+    tag: 'mixed',
+    tagLabel: 'GRIM',
+    historicalScore: 473,
+    historicalRank: 7,
+    fn: (history) => {
+      if (history.some(h => h.opponent === 'D')) return 'D';
+      return 'C';
+    }
+  },
+  {
+    id: 'davis',
+    name: 'DAVIS',
+    shortDesc: 'Cooperate for first 10 rounds. Then defect if opponent ever defected.',
+    tag: 'mixed',
+    tagLabel: 'PATIENT',
+    historicalScore: 472,
+    historicalRank: 8,
+    fn: (history) => {
+      if (history.length < 10) return 'C';
+      if (history.some(h => h.opponent === 'D')) return 'D';
+      return 'C';
+    }
+  }
+];
+
+// ===================== GAME STATE =====================
+let state = {
+  selectedAlgo: null,
+  randomMode: false,
+  totalRounds: 10,
+  currentRound: 0,
+  p1Score: 0,
+  p2Score: 0,
+  history: [],
+  activeAlgo: null,
+  waiting: false
+};
+
+// ===================== NAVIGATION =====================
+function goTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  if (screenId === 'screen-select') renderAlgoGrid();
+}
+
+// ===================== PAYOFF =====================
+function getPayoff(p1, p2) {
+  if (p1 === 'C' && p2 === 'C') return [3, 3];
+  if (p1 === 'C' && p2 === 'D') return [0, 5];
+  if (p1 === 'D' && p2 === 'C') return [5, 0];
+  return [1, 1];
+}
+
+// ===================== ALGO GRID =====================
+function renderAlgoGrid() {
+  const grid = document.getElementById('algo-grid');
+  grid.innerHTML = ALGORITHMS.map(a => `
+    <div class="algo-card ${state.selectedAlgo === a.id ? 'selected' : ''}" id="card-${a.id}" onclick="selectAlgo('${a.id}')">
+      <div class="algo-name">${a.name}</div>
+      <div class="algo-desc">${a.shortDesc}</div>
+      <span class="algo-tag ${a.tag}">${a.tagLabel}</span>
+      ${a.historicalRank ? `<div style="font-family:var(--pixel);font-size:9px;color:var(--muted);margin-top:6px;letter-spacing:1px;">AXELROD RANK #${a.historicalRank}</div>` : ''}
+    </div>
+  `).join('');
+  updateChosenDisplay();
+}
+
+function selectAlgo(id) {
+  if (state.randomMode) {
+    state.randomMode = false;
+    document.getElementById('random-toggle').classList.remove('active');
+    document.getElementById('random-box').textContent = '';
+  }
+  state.selectedAlgo = id;
+  document.querySelectorAll('.algo-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('card-' + id)?.classList.add('selected');
+  updateChosenDisplay();
+}
+
+function toggleRandom() {
+  state.randomMode = !state.randomMode;
+  const toggle = document.getElementById('random-toggle');
+  const box = document.getElementById('random-box');
+  if (state.randomMode) {
+    toggle.classList.add('active');
+    box.textContent = '✓';
+    state.selectedAlgo = null;
+    document.querySelectorAll('.algo-card').forEach(c => c.classList.remove('selected'));
+  } else {
+    toggle.classList.remove('active');
+    box.textContent = '';
+  }
+  updateChosenDisplay();
+}
+
+function updateChosenDisplay() {
+  const el = document.getElementById('chosen-display');
+  if (state.randomMode) {
+    el.textContent = 'RANDOM OPPONENT — IDENTITY CONCEALED';
+    el.style.color = 'var(--accent2)';
+  } else if (state.selectedAlgo) {
+    const a = ALGORITHMS.find(x => x.id === state.selectedAlgo);
+    el.textContent = `SELECTED: ${a.name}`;
+    el.style.color = 'var(--accent)';
+  } else {
+    el.textContent = 'SELECT AN ALGORITHM BELOW';
+    el.style.color = 'var(--muted)';
+  }
+}
+
+function selectRounds(n, el) {
+  state.totalRounds = n;
+  document.querySelectorAll('.rounds-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ===================== GAME =====================
+function startGame() {
+  if (!state.selectedAlgo && !state.randomMode) {
+    showNotif('SELECT AN OPPONENT FIRST');
+    return;
+  }
+
+  // Pick algo
+  if (state.randomMode) {
+    const pick = ALGORITHMS[Math.floor(Math.random() * ALGORITHMS.length)];
+    state.activeAlgo = pick;
+  } else {
+    state.activeAlgo = ALGORITHMS.find(a => a.id === state.selectedAlgo);
+  }
+
+  // Reset
+  state.currentRound = 0;
+  state.p1Score = 0;
+  state.p2Score = 0;
+  state.history = [];
+  state.waiting = false;
+
+  goTo('screen-game');
+  updateGameUI();
+  document.getElementById('history-strip').innerHTML = '<span class="history-label">HISTORY</span><span style="font-family:var(--pixel);font-size:9px;color:var(--muted);letter-spacing:1px;"><span style="color:var(--green)">■</span> CC &nbsp;<span style="color:var(--accent)">■</span> DC &nbsp;<span style="color:var(--accent3)">■</span> CD &nbsp;<span style="color:var(--muted)">■</span> DD</span>';
+  document.getElementById('result-display').innerHTML = '<span style="color:var(--muted);font-family:var(--pixel);font-size:10px;letter-spacing:3px;">AWAITING MOVES...</span>';
+  document.getElementById('p1-score').textContent = '0';
+  document.getElementById('p2-score').textContent = '0';
+
+  const opName = state.randomMode ? '???' : state.activeAlgo.name;
+  document.getElementById('opponent-name-display').textContent = opName;
+  document.getElementById('p2-label').textContent = opName;
+
+  enableChoiceBtns(true);
+}
+
+function updateGameUI() {
+  const r = state.currentRound;
+  const t = state.totalRounds;
+  document.getElementById('round-label').textContent = `ROUND ${r + 1} / ${t}`;
+  document.getElementById('round-progress').style.width = `${(r / t) * 100}%`;
+}
+
+function enableChoiceBtns(enabled) {
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = !enabled);
+  document.getElementById('player-status').textContent = enabled ? 'CHOOSE YOUR MOVE' : 'WAITING...';
+  document.getElementById('thinking').style.display = enabled ? 'none' : 'block';
+  document.getElementById('opponent-choice-reveal').style.display = 'none';
+}
+
+function playerChoice(choice) {
+  if (state.waiting || state.currentRound >= state.totalRounds) return;
+  state.waiting = true;
+  enableChoiceBtns(false);
+
+  const opponentChoice = state.activeAlgo.fn(state.history);
+
+  setTimeout(() => {
+    resolveRound(choice, opponentChoice);
+  }, 600);
+}
+
+function resolveRound(p1, p2) {
+  const [pts1, pts2] = getPayoff(p1, p2);
+  state.p1Score += pts1;
+  state.p2Score += pts2;
+
+  const roundData = { player: p1, opponent: p2, p1points: pts1, p2points: pts2 };
+  state.history.push(roundData);
+  state.currentRound++;
+
+  // Update scores
+  document.getElementById('p1-score').textContent = state.p1Score;
+  document.getElementById('p2-score').textContent = state.p2Score;
+
+  // Reveal
+  const thinking = document.getElementById('thinking');
+  const reveal = document.getElementById('opponent-choice-reveal');
+  thinking.style.display = 'none';
+  reveal.style.display = 'block';
+  reveal.textContent = p2 === 'C' ? '▲ COOPERATE' : '▼ DEFECT';
+  reveal.style.color = p2 === 'C' ? 'var(--green)' : 'var(--accent3)';
+
+  // Result row
+  const key = p1 + p2;
+  let desc = '';
+  let ptsColor = 'var(--accent)';
+  if (key === 'CC') { desc = 'MUTUAL COOPERATION'; ptsColor = 'var(--green)'; }
+  else if (key === 'CD') { desc = 'BETRAYED'; ptsColor = 'var(--accent3)'; }
+  else if (key === 'DC') { desc = 'YOU BETRAYED THEM'; ptsColor = 'var(--accent)'; }
+  else { desc = 'MUTUAL DEFECTION'; ptsColor = 'var(--muted)'; }
+
+  document.getElementById('result-display').innerHTML = `
+    <span class="choice-badge ${p1}">${p1 === 'C' ? 'COOPERATE' : 'DEFECT'}</span>
+    <span style="color:var(--muted);margin:0 4px;">vs</span>
+    <span class="choice-badge ${p2}">${p2 === 'C' ? 'COOPERATE' : 'DEFECT'}</span>
+    <span style="flex:1;text-align:center;font-size:10px;letter-spacing:2px;color:var(--muted);">${desc}</span>
+    <span style="color:${ptsColor};">YOU +${pts1}</span>
+    <span style="color:var(--muted);font-size:9px;margin: 0 8px;">|</span>
+    <span style="color:var(--accent2);">THEM +${pts2}</span>
+  `;
+
+  // History dot
+  const strip = document.getElementById('history-strip');
+  const dot = document.createElement('div');
+  dot.className = `history-dot ${key}`;
+  dot.title = `R${state.currentRound}: ${p1} vs ${p2}`;
+  strip.appendChild(dot);
+
+  // Progress
+  document.getElementById('round-progress').style.width = `${(state.currentRound / state.totalRounds) * 100}%`;
+  document.getElementById('round-label').textContent = `ROUND ${state.currentRound} / ${state.totalRounds}`;
+
+  state.waiting = false;
+
+  if (state.currentRound >= state.totalRounds) {
+    setTimeout(endGame, 1200);
+  } else {
+    enableChoiceBtns(true);
+  }
+}
+
+function endGame() {
+  const p1 = state.p1Score;
+  const p2 = state.p2Score;
+
+  // Stats
+  const mutualC = state.history.filter(h => h.player === 'C' && h.opponent === 'C').length;
+  const mutualD = state.history.filter(h => h.player === 'D' && h.opponent === 'D').length;
+  const betrayed = state.history.filter(h => h.player === 'C' && h.opponent === 'D').length;
+
+  document.getElementById('final-p1').textContent = p1;
+  document.getElementById('final-p2').textContent = p2;
+  document.getElementById('final-p2-label').textContent = state.activeAlgo.name;
+  document.getElementById('stat-mutual-c').textContent = mutualC;
+  document.getElementById('stat-mutual-d').textContent = mutualD;
+  document.getElementById('stat-betrayed').textContent = betrayed;
+
+  const winEl = document.getElementById('winner-text');
+  const tagEl = document.getElementById('result-tag');
+  const subEl = document.getElementById('result-subtitle');
+
+  if (p1 > p2) {
+    winEl.textContent = 'YOU WIN';
+    winEl.className = 'winner-text win';
+    tagEl.textContent = 'MATCH COMPLETE · VICTORY';
+    subEl.textContent = `+${p1 - p2} POINT ADVANTAGE`;
+  } else if (p2 > p1) {
+    winEl.textContent = 'YOU LOSE';
+    winEl.className = 'winner-text lose';
+    tagEl.textContent = 'MATCH COMPLETE · DEFEAT';
+    subEl.textContent = `${p2 - p1} POINTS BEHIND`;
+  } else {
+    winEl.textContent = 'DRAW';
+    winEl.className = 'winner-text draw';
+    tagEl.textContent = 'MATCH COMPLETE · TIED';
+    subEl.textContent = 'PERFECTLY MATCHED';
+  }
+
+  // If random mode — reveal now
+  if (state.randomMode) {
+    subEl.textContent = (subEl.textContent || '') + ` · OPPONENT WAS: ${state.activeAlgo.name}`;
+  }
+
+  renderLeaderboard(p1);
+  goTo('screen-results');
+}
+
+function renderLeaderboard(playerScore) {
+  // Build list with player entry
+  const entries = [
+    ...ALGORITHMS.filter(a => a.historicalRank !== null).map(a => ({
+      name: a.name,
+      score: a.historicalScore,
+      isPlayer: false,
+      rank: a.historicalRank
+    })),
+    { name: 'YOU', score: playerScore, isPlayer: true }
+  ];
+
+  entries.sort((a, b) => b.score - a.score);
+  const maxScore = Math.max(...entries.map(e => e.score));
+
+  const lb = document.getElementById('leaderboard');
+  lb.innerHTML = `<div class="leaderboard-title">// TOURNAMENT RANKINGS (YOUR SESSION)</div>` +
+    entries.map((e, i) => `
+      <div class="lb-row ${e.isPlayer ? 'highlight' : ''}">
+        <div class="lb-rank">${String(i + 1).padStart(2, '0')}</div>
+        <div class="lb-name" style="${e.isPlayer ? 'color:var(--accent);' : ''}">${e.name}${e.isPlayer ? ' ←' : ''}</div>
+        <div class="lb-score">${e.score}</div>
+        <div class="lb-bar-wrap">
+          <div class="lb-bar" style="width:${(e.score / maxScore) * 100}%; background:${e.isPlayer ? 'var(--accent)' : 'var(--accent2)'}"></div>
+        </div>
+      </div>
+    `).join('');
+}
+
+function rematch() {
+  startGame();
+}
+
+function showNotif(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// Init
+renderAlgoGrid();
+</script>
+</body>
+</html>
